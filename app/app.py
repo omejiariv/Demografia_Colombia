@@ -4,6 +4,8 @@ import streamlit as st
 from sidebar import sidebar
 from mapa import mapa_principal
 from piramide import mostrar_piramide
+from engine.pipeline.runner import ejecutar_pipeline_antioquia
+from engine.pipeline.runner import guardar_raster_temporal
 
 st.set_page_config(
     page_title="Modelo Demográfico Espacial – Colombia",
