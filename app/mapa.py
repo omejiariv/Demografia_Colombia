@@ -1,15 +1,25 @@
 # app/mapa.py
 
-import leafmap.foliumap as leafmap
 import streamlit as st
-from modelo import obtener_raster
+import geopandas as gpd
+import leafmap.foliumap as leafmap
 
+from modelo import obtener_raster
 from engine.espacial.clasificacion import clasificar_densidad
 
-def mapa_principal(...):
 
+def mapa_principal(escala, nivel, ano, zona):
+    st.subheader("Mapa de distribución poblacional")
+
+    st.write("Escala:", escala)
+    st.write("Nivel:", nivel)
+    st.write("Año:", ano)
+    st.write("Zona:", zona)
+
+    # Obtener raster
     raster_path, total = obtener_raster(ano, zona)
 
+    # Crear mapa
     m = leafmap.Map(
         center=[6.5, -75.5],
         zoom=7,
@@ -30,28 +40,30 @@ def mapa_principal(...):
         opacity=0.85
     )
 
-gdf_cabeceras = gpd.read_file("data/cabeceras.gpkg")
+    # Cabeceras municipales
+    gdf_cabeceras = gpd.read_file("data/cabeceras.gpkg")
 
-m.add_gdf(
-    gdf_cabeceras,
-    layer_name="Cabeceras municipales",
-    style={
-        "radius": 4,
-        "color": "black",
-        "fillColor": "red",
-        "fillOpacity": 0.9
-    }
-)
+    m.add_gdf(
+        gdf_cabeceras,
+        layer_name="Cabeceras municipales",
+        style={
+            "radius": 4,
+            "color": "black",
+            "fillColor": "red",
+            "fillOpacity": 0.9
+        }
+    )
 
-st.markdown("""
-### Densidad poblacional (hab/km²)
+    m.to_streamlit(height=600)
 
-- < 1
-- 1 – 10
-- 10 – 50
-- 50 – 200
-- 200 – 1.000
-- > 1.000
-""")
+    # Leyenda
+    st.markdown("""
+    ### Densidad poblacional (hab/km²)
 
-
+    - < 1  
+    - 1 – 10  
+    - 10 – 50  
+    - 50 – 200  
+    - 200 – 1.000  
+    - > 1.000  
+    """)
