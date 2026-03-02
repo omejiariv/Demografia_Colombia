@@ -7,7 +7,6 @@ import leafmap.foliumap as leafmap
 from modelo import obtener_raster
 from engine.espacial.clasificacion import clasificar_densidad
 
-
 def mapa_principal(escala, nivel, ano, zona):
     st.subheader("Mapa de distribución poblacional")
 
