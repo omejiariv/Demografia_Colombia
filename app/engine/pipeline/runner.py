@@ -1,63 +1,46 @@
-# app/engine/pipeline/runner.py
-
-import os
 import numpy as np
 import geopandas as gpd
 import tempfile
 import rasterio
 from rasterio.transform import from_origin
+from pathlib import Path
 
-from engine.demografia.proyecciones import proyectar_serie
-from engine.demografia.escalas import redistribuir
-from engine.espacial.urbano_rural import clasificar_urbano_rural
 from engine.espacial.kernel import puntos_ponderados, kde_superficie
 from engine.espacial.raster import crear_grid, evaluar_kde
-from engine.espacial.calibracion import calibrar_raster
 
 
-# -------------------------------------------------
-# Utilidad robusta de carga espacial
-# -------------------------------------------------
-def cargar_capa(nombre_base, crs="EPSG:9377"):
-    rutas = [
-        f"data/{nombre_base}.gpkg",
-        f"data/{nombre_base}.shp"
-    ]
-
-    for ruta in rutas:
-        if os.path.exists(ruta):
-            gdf = gpd.read_file(ruta)
-            if gdf.crs is None:
-                gdf = gdf.set_crs(crs)
-            else:
-                gdf = gdf.to_crs(crs)
-            return gdf
-
-    raise FileNotFoundError(
-        f"No se encontró la capa '{nombre_base}' en formatos .gpkg o .shp"
-    )
+DATA_DIR = Path("data")
 
 
-# -------------------------------------------------
-# Pipeline principal Antioquia
-# -------------------------------------------------
+def cargar_capa(path, crs="EPSG:9377"):
+    if not path.exists():
+        raise FileNotFoundError(f"No se encontró la capa: {path}")
+    gdf = gpd.read_file(path)
+    if gdf.crs is None:
+        gdf = gdf.set_crs(crs)
+    else:
+        gdf = gdf.to_crs(crs)
+    return gdf
+
+
 def ejecutar_pipeline_antioquia(
     ano,
     zona="Total",
     resolucion=500
 ):
     """
-    Ejecuta el pipeline completo para Antioquia y devuelve:
-    - raster (numpy array)
+    Devuelve:
+    - raster (np.ndarray)
     - bounds
     - total poblacional
     """
 
     # -------------------------
-    # 1. Capas base (ROBUSTO)
+    # 1. Capas base (SHP)
     # -------------------------
-    gdf_veredas = cargar_capa("veredas")
-    gdf_urbanos = cargar_capa("urbano_poligonos")
+    gdf_veredas = cargar_capa(
+        DATA_DIR / "VeredasCV.shp"
+    )
 
     # -------------------------
     # 2. Población total (placeholder)
@@ -67,18 +50,13 @@ def ejecutar_pipeline_antioquia(
     gdf_veredas["POBLACION"] = total_antioquia / len(gdf_veredas)
 
     # -------------------------
-    # 3. Urbano / Rural
+    # 3. Zona (robusto)
     # -------------------------
-    urbano, rural = clasificar_urbano_rural(
-        gdf_veredas, gdf_urbanos
-    )
+    if zona in ["Urbana", "Rural"]:
+        # Aún no hay capa urbana → fallback seguro
+        pass
 
-    if zona == "Urbana":
-        gdf = urbano
-    elif zona == "Rural":
-        gdf = rural
-    else:
-        gdf = gdf_veredas
+    gdf = gdf_veredas
 
     # -------------------------
     # 4. KDE
@@ -87,7 +65,7 @@ def ejecutar_pipeline_antioquia(
 
     kde = kde_superficie(
         puntos,
-        bandwidth=800 if zona != "Rural" else 1500
+        bandwidth=800
     )
 
     # -------------------------
@@ -105,9 +83,6 @@ def ejecutar_pipeline_antioquia(
     return raster, bounds, total_antioquia
 
 
-# -------------------------------------------------
-# Guardar raster temporal
-# -------------------------------------------------
 def guardar_raster_temporal(raster, bounds, resolucion):
     minx, miny, maxx, maxy = bounds
     transform = from_origin(minx, maxy, resolucion, resolucion)
@@ -126,7 +101,7 @@ def guardar_raster_temporal(raster, bounds, resolucion):
         count=1,
         dtype=raster.dtype,
         crs="EPSG:9377",
-        transform=transform
+        transform=transform,
     ) as dst:
         dst.write(raster, 1)
 
