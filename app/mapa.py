@@ -29,3 +29,29 @@ def mapa_principal(...):
         ],
         opacity=0.85
     )
+
+gdf_cabeceras = gpd.read_file("data/cabeceras.gpkg")
+
+m.add_gdf(
+    gdf_cabeceras,
+    layer_name="Cabeceras municipales",
+    style={
+        "radius": 4,
+        "color": "black",
+        "fillColor": "red",
+        "fillOpacity": 0.9
+    }
+)
+
+st.markdown("""
+### Densidad poblacional (hab/km²)
+
+- < 1
+- 1 – 10
+- 10 – 50
+- 50 – 200
+- 200 – 1.000
+- > 1.000
+""")
+
+
