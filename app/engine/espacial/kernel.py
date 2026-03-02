@@ -1,4 +1,4 @@
-# engine/espacial/kernel.py
+# app/engine/espacial/kernel.py
 
 import numpy as np
 
