@@ -3,6 +3,7 @@
 import streamlit as st
 from sidebar import sidebar
 from mapa import mapa_principal
+from piramide import mostrar_piramide
 
 st.set_page_config(
     page_title="Modelo Demográfico Espacial – Colombia",
@@ -20,10 +21,21 @@ st.markdown(
 # Sidebar
 escala, ano, zona, comparativo = sidebar()
 
-# Mapa
-mapa_principal(
-    escala=escala,
-    ano=ano,
-    zona=zona,
-    comparativo=comparativo
-)
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    mapa_principal(
+        escala=escala,
+        ano=ano,
+        zona=zona,
+        comparativo=comparativo
+    )
+
+with col2:
+    st.subheader("Pirámide poblacional")
+    mostrar_piramide(
+        ano=ano,
+        escala="Nacional" if escala == "Departamental (Antioquia)" else escala,
+        codigo=None,
+        zona=zona
+    )
