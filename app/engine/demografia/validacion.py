@@ -1,4 +1,4 @@
-# engine/demografia/validacion.py
+# app/engine/demografia/validacion.py
 
 def cerrar_masa(total_superior, suma_inferior, tolerancia=0.01):
     diferencia = abs(total_superior - suma_inferior)
