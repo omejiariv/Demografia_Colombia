@@ -1,7 +1,7 @@
 # app/app.py
 
 import streamlit as st
-from app.sidebar import sidebar
+from ui/sidebar.py import sidebar
 from app.mapa import mapa_principal
 from app.piramide import mostrar_piramide
 
