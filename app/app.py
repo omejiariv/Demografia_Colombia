@@ -1,9 +1,9 @@
 # app/app.py
 
 import streamlit as st
-from sidebar import sidebar
-from mapa import mapa_principal
-from piramide import mostrar_piramide
+from app.sidebar import sidebar
+from app.mapa import mapa_principal
+from app.piramide import mostrar_piramide
 
 st.set_page_config(
     page_title="Modelo Demográfico Espacial – Colombia",
