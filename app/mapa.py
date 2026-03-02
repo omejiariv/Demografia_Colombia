@@ -3,122 +3,94 @@
 import streamlit as st
 import geopandas as gpd
 import leafmap.foliumap as leafmap
-from pathlib import Path
+import rasterio
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from rasterio.plot import reshape_as_image
+from branca.colormap import LinearColormap
 
 from modelo import obtener_raster
-
-
-DATA_DIR = Path("data")
-
-
-def cargar_capa(path, crs="EPSG:4326"):
-    """
-    Carga una capa espacial de forma robusta.
-    - Verifica existencia
-    - Reproyecta si es necesario
-    """
-    if not path.exists():
-        st.error(f"No se encontró la capa: {path}")
-        st.stop()
-
-    gdf = gpd.read_file(path)
-
-    if gdf.crs is None:
-        gdf = gdf.set_crs(crs)
-    else:
-        gdf = gdf.to_crs(crs)
-
-    return gdf
 
 
 def mapa_principal(escala, nivel, ano, zona):
     st.subheader("Mapa de distribución poblacional")
 
-    st.write(f"**Escala:** {escala}")
-    st.write(f"**Nivel:** {nivel}")
-    st.write(f"**Año:** {ano}")
-    st.write(f"**Zona:** {zona}")
+    st.write("Escala:", escala)
+    st.write("Nivel:", nivel)
+    st.write("Año:", ano)
+    st.write("Zona:", zona)
 
     # -------------------------
     # 1. Obtener raster
     # -------------------------
-    try:
-        raster_path, total = obtener_raster(ano, zona)
-    except Exception as e:
-        st.error("Error al generar el raster poblacional")
-        st.exception(e)
-        st.stop()
+    raster_path, total = obtener_raster(ano, zona)
 
     # -------------------------
-    # 2. Crear mapa base
+    # 2. Leer raster con rasterio
+    # -------------------------
+    with rasterio.open(raster_path) as src:
+        data = src.read(1)
+        bounds = src.bounds
+        crs = src.crs
+
+    # Normalizar para visualización
+    data = np.nan_to_num(data)
+    vmax = np.percentile(data, 99)
+    data = np.clip(data, 0, vmax)
+
+    # Colormap
+    cmap = cm.get_cmap("Blues")
+    rgba = cmap(data / vmax)
+
+    # Convertir a imagen
+    img = (rgba[:, :, :3] * 255).astype(np.uint8)
+
+    # -------------------------
+    # 3. Crear mapa
     # -------------------------
     m = leafmap.Map(
-        center=[6.5, -75.5],  # Antioquia
+        center=[6.5, -75.5],
         zoom=7,
         basemap="CartoDB.Positron"
     )
 
-    # -------------------------
-    # 3. Raster de densidad
-    # -------------------------
-    m.add_raster(
-        raster_path,
-        layer_name=f"Densidad poblacional {ano}",
-        colormap=[
-            "#f7fbff",
-            "#deebf7",
-            "#c6dbef",
-            "#9ecae1",
-            "#6baed6",
-            "#2171b5",
-        ],
+    # Añadir raster como imagen
+    m.add_image(
+        img,
+        bounds=[[bounds.bottom, bounds.left], [bounds.top, bounds.right]],
         opacity=0.85,
+        name=f"Densidad {ano}"
     )
 
     # -------------------------
-    # 4. Cabeceras municipales
-    #    (centroides de municipios)
+    # 4. Cabeceras / municipios
     # -------------------------
-    municipios_path = DATA_DIR / "MunicipiosAntioquia.geojson"
+    gdf_mpios = gpd.read_file("data/MunicipiosAntioquia.geojson").to_crs("EPSG:4326")
 
-    if municipios_path.exists():
-        gdf_municipios = cargar_capa(municipios_path)
-        gdf_cabeceras = gdf_municipios.copy()
-        gdf_cabeceras["geometry"] = gdf_cabeceras.centroid
+    m.add_gdf(
+        gdf_mpios,
+        layer_name="Municipios",
+        style={
+            "fillOpacity": 0,
+            "color": "black",
+            "weight": 1
+        }
+    )
 
-        m.add_gdf(
-            gdf_cabeceras,
-            layer_name="Cabeceras municipales",
-            style={
-                "radius": 3,
-                "color": "black",
-                "fillColor": "red",
-                "fillOpacity": 0.9,
-            },
-        )
-    else:
-        st.warning("No se encontró la capa de municipios. Se omiten cabeceras.")
-
-    # -------------------------
-    # 5. Mostrar mapa
-    # -------------------------
+    m.add_layer_control()
     m.to_streamlit(height=600)
 
     # -------------------------
-    # 6. Leyenda
+    # 5. Leyenda
     # -------------------------
-    st.markdown(
-        """
-        ### Densidad poblacional (hab/km²)
-
-        - < 1  
-        - 1 – 10  
-        - 10 – 50  
-        - 50 – 200  
-        - 200 – 1.000  
-        - > 1.000  
-
-        ---
-        **Población total estimada:** {:,.0f}
-        """.format(total)
+    colormap = LinearColormap(
+        colors=["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#2171b5"],
+        vmin=0,
+        vmax=int(vmax),
+        caption="Densidad poblacional (hab/km²)"
     )
+
+    st.markdown(colormap._repr_html_(), unsafe_allow_html=True)
+
+    st.caption(f"Población total estimada: {int(total):,}")
