@@ -4,7 +4,11 @@ import leafmap.foliumap as leafmap
 import streamlit as st
 from modelo import obtener_raster
 
-def mapa_principal(escala, ano, zona, comparativo):
+from engine.espacial.clasificacion import clasificar_densidad
+
+def mapa_principal(...):
+
+    raster_path, total = obtener_raster(ano, zona)
 
     m = leafmap.Map(
         center=[6.5, -75.5],
@@ -12,18 +16,16 @@ def mapa_principal(escala, ano, zona, comparativo):
         basemap="CartoDB.Positron"
     )
 
-    raster_path, total = obtener_raster(ano, zona)
-
     m.add_raster(
         raster_path,
         layer_name=f"Densidad {ano}",
-        colormap="viridis",
-        opacity=0.8
+        colormap=[
+            "#f7fbff",
+            "#deebf7",
+            "#c6dbef",
+            "#9ecae1",
+            "#6baed6",
+            "#2171b5"
+        ],
+        opacity=0.85
     )
-
-    st.caption(
-        f"Población total estimada: {int(total):,}"
-    )
-
-    m.add_layer_control()
-    m.to_streamlit(height=750)
