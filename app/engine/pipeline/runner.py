@@ -1,5 +1,6 @@
 # app/engine/pipeline/runner.py
 
+import os
 import numpy as np
 import geopandas as gpd
 import tempfile
@@ -14,6 +15,32 @@ from engine.espacial.raster import crear_grid, evaluar_kde
 from engine.espacial.calibracion import calibrar_raster
 
 
+# -------------------------------------------------
+# Utilidad robusta de carga espacial
+# -------------------------------------------------
+def cargar_capa(nombre_base, crs="EPSG:9377"):
+    rutas = [
+        f"data/{nombre_base}.gpkg",
+        f"data/{nombre_base}.shp"
+    ]
+
+    for ruta in rutas:
+        if os.path.exists(ruta):
+            gdf = gpd.read_file(ruta)
+            if gdf.crs is None:
+                gdf = gdf.set_crs(crs)
+            else:
+                gdf = gdf.to_crs(crs)
+            return gdf
+
+    raise FileNotFoundError(
+        f"No se encontró la capa '{nombre_base}' en formatos .gpkg o .shp"
+    )
+
+
+# -------------------------------------------------
+# Pipeline principal Antioquia
+# -------------------------------------------------
 def ejecutar_pipeline_antioquia(
     ano,
     zona="Total",
@@ -27,23 +54,20 @@ def ejecutar_pipeline_antioquia(
     """
 
     # -------------------------
-    # 1. Cargar capas base
+    # 1. Capas base (ROBUSTO)
     # -------------------------
-    gdf_veredas = gpd.read_file("data/veredas.gpkg").to_crs("EPSG:9377")
-    gdf_urbanos = gpd.read_file("data/urbano_poligonos.gpkg").to_crs("EPSG:9377")
+    gdf_veredas = cargar_capa("veredas")
+    gdf_urbanos = cargar_capa("urbano_poligonos")
 
     # -------------------------
-    # 2. Población total Antioquia (demografía)
+    # 2. Población total (placeholder)
     # -------------------------
-    # (por ahora simplificado, luego entran parámetros reales)
-    total_antioquia = 6500000 * (1 + 0.01 * (ano - 2020) / 5)
+    total_antioquia = 6_500_000 * (1 + 0.01 * (ano - 2020) / 5)
 
-    gdf_veredas["POBLACION"] = (
-        total_antioquia / len(gdf_veredas)
-    )
+    gdf_veredas["POBLACION"] = total_antioquia / len(gdf_veredas)
 
     # -------------------------
-    # 3. Urbano / rural
+    # 3. Urbano / Rural
     # -------------------------
     urbano, rural = clasificar_urbano_rural(
         gdf_veredas, gdf_urbanos
@@ -80,6 +104,10 @@ def ejecutar_pipeline_antioquia(
 
     return raster, bounds, total_antioquia
 
+
+# -------------------------------------------------
+# Guardar raster temporal
+# -------------------------------------------------
 def guardar_raster_temporal(raster, bounds, resolucion):
     minx, miny, maxx, maxy = bounds
     transform = from_origin(minx, maxy, resolucion, resolucion)
