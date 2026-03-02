@@ -1,4 +1,4 @@
-# engine/demografia/proyecciones.py
+# app/engine/demografia/proyecciones.py
 
 import pandas as pd
 from .modelos import modelo_logistico
