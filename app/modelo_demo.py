@@ -1,3 +1,5 @@
+# app/modelo_demo.py
+
 import pandas as pd
 import streamlit as st
 from engine.demografia.piramides import obtener_piramide
