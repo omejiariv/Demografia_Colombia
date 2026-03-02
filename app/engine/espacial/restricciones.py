@@ -1,4 +1,4 @@
-# engine/espacial/restricciones.py
+# app/engine/espacial/restricciones.py
 
 import rasterio
 import numpy as np
