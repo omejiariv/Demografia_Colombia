@@ -20,4 +20,4 @@ with col1:
     mapa_principal(escala, nivel, ano, zona)
 
 with col2:
-    mostrar_piramide(escala, nivel, ano, zona, sexo))
+    mostrar_piramide(escala, nivel, ano, zona, sexo)
