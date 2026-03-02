@@ -15,3 +15,14 @@ leafmap>=0.30
 folium>=0.15
 
 openpyxl>=3.1
+
+streamlit
+geopandas
+leafmap
+folium
+rasterio
+numpy
+scipy
+xarray
+pyproj
+shapely
