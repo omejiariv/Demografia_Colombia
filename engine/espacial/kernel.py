@@ -11,3 +11,13 @@ def puntos_ponderados(gdf, campo_pob, n=1000):
             for _ in range(k)
         )
     return puntos
+
+from sklearn.neighbors import KernelDensity
+
+def kde_superficie(puntos, bandwidth=1000):
+    coords = np.array([[p.x, p.y] for p in puntos])
+    kde = KernelDensity(
+        bandwidth=bandwidth,
+        kernel="gaussian"
+    ).fit(coords)
+    return kde
