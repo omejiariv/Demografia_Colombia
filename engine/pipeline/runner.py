@@ -79,3 +79,27 @@ def ejecutar_pipeline_antioquia(
     raster = raster * (total_antioquia / raster.sum())
 
     return raster, bounds, total_antioquia
+
+def guardar_raster_temporal(raster, bounds, resolucion):
+    minx, miny, maxx, maxy = bounds
+    transform = from_origin(minx, maxy, resolucion, resolucion)
+
+    tmp = tempfile.NamedTemporaryFile(
+        suffix=".tif",
+        delete=False
+    )
+
+    with rasterio.open(
+        tmp.name,
+        "w",
+        driver="GTiff",
+        height=raster.shape[0],
+        width=raster.shape[1],
+        count=1,
+        dtype=raster.dtype,
+        crs="EPSG:9377",
+        transform=transform
+    ) as dst:
+        dst.write(raster, 1)
+
+    return tmp.name
