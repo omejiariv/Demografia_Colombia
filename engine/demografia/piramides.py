@@ -1,4 +1,18 @@
+# engine/demografia/piramides.py
+
 import pandas as pd
+
+def construir_piramide(df, ano, sexo="Total"):
+    base = df[df["ANO"] == ano]
+
+    if sexo != "Total":
+        base = base[base["SEXO"] == sexo]
+
+    tabla = base.groupby(
+        ["EDAD_GRUPO", "SEXO"]
+    )["POBLACION"].sum().reset_index()
+
+    return tabla
 
 EDADES_ORDEN = [
     "0-4","5-9","10-14","15-19","20-24","25-29",
